@@ -3,6 +3,7 @@
 var exchangeData = {},
     exch = require('./lib/exchange'),
     nocklib = require('./lib/nocklib'),
+    nockroutes = require('./routes/nockroutes'),
     db = require('./lib/db'),
     express = require('express'),
     timeFloor = 500,
@@ -39,10 +40,21 @@ function submitRandomOrder(){
 }
 
 var app = express.createServer();
-app.get('/', function(req, res){
-  res.send('Hello World');
+app.configure(function(){
+  app.set('views', __dirname + '/views');
+  app.set('view engine', 'ejs');
+  app.use(express.static(__dirname + '/public'));
 });
-
+app.set('view options', {layout: false});
+app.use(express.bodyParser());
+app.use(express.cookieParser());
+app.use(express.session({secret: 'secretpasswordforsessions'}));
+app.post('/add-stock', nockroutes.addStock);
+app.get('/', nockroutes.getIndex);
+app.get('/api/user/:username', nockroutes.getUser);
+app.post('/login', nockroutes.login);
+app.post('/signup', nockroutes.signup);
+app.get('/portfolio', nocklib.ensureAuthenticated, nockroutes.portfolio);
 app.get('/api/trades', function(req, res){
   db.find('transactions', {init: {$exists: true}}, 100,
     function(err, trades){

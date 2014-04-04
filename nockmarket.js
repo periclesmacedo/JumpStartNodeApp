@@ -4,6 +4,7 @@ var exchangeData = {},
     exch = require('./lib/exchange'),
     nocklib = require('./lib/nocklib'),
     nockroutes = require('./routes/nockroutes'),
+    http = require('http'),
     db = require('./lib/db'),
     express = require('express'),
     timeFloor = 500,
@@ -39,7 +40,7 @@ function submitRandomOrder(){
   }
 }
 
-var app = express.createServer();
+var app = express();
 app.configure(function(){
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
@@ -80,5 +81,5 @@ app.get('/api/trades', function(req, res){
 
 db.open(function(){
   submitRandomOrder();
-  app.listen(3000);
+  http.createServer(app).listen(3000);
 });

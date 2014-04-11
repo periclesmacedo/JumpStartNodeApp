@@ -11,19 +11,27 @@ var exchangeData = {},
     timeRange = 1000,
     SECRET_KEY = 'secretpasswordforsessions';
 
-function submitRandomOrder(){
+var stocks = ['NOCK1', 'NOCK2', 'NOCK3', 'NOCK4', 'NOCK5'];
+var allData = [];
+stocks.forEach(function(stock){allData.push({});});
+
+function submitRandomOrder(index){
+  var exchangeData = allData[index];
   //order
   var ord = nocklib.generateRandomOrder(exchangeData);
+  ord.stock = stocks[index];
   console.log('order', ord);
   if(ord.type == exch.BUY)
-    exchangeData = exch.buy(ord.price, ord.volume, exchangeData);
+    allData[index] = exch.buy(ord.price, ord.volume, exchangeData);
   else
-    exchangeData = exch.sell(ord.price, ord.volume, exchangeData);
+    allData[index] = exch.sell(ord.price, ord.volume, exchangeData);
 
   db.insertOne('transactions', ord, function(err, order){
     if(exchangeData.trades && exchangeData.trades.length > 0){
+      nocklib.sendTrades(exchangeData.trades);
       var trades = exchangeData.trades.map(function(trade){
         trade.init = (ord.type == exch.BUY)? 'b' : 's';
+        trade.stock = stocks[index];
         return trade;
       });
       db.insert('transactions', trades, function(err, trades){
@@ -36,7 +44,7 @@ function submitRandomOrder(){
 
   function pauseThenTrade(){
     var pause = Math.floor(Math.random() * timeRange) + timeFloor;
-    setTimeout(submitRandomOrder, pause);
+    setTimeout(submitRandomOrder.bind(this, index), pause);
     console.log(exch.getDisplay(exchangeData));
   }
 }
@@ -85,5 +93,7 @@ db.open(function(){
   var server = http.createServer(app);
   nocklib.createSocket(server, SECRET_KEY);
   server.listen(3000);
-  submitRandomOrder();
+  for(var i = 0; i < stocks.length; i++){
+    submitRandomOrder(i);
+  }
 });
